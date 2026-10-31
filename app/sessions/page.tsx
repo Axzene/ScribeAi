@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -108,14 +108,21 @@ export default function SessionsPage() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (status === "IDLE") {
-      setElapsed(0);
-      return;
-    }
-    if (status !== "RECORDING") return;
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [status]);
+        if (status === "IDLE") {
+          setElapsed(0);
+          return;
+        }
+        if (status !== "RECORDING") return;
+        const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+        return () => clearInterval(id);
+      }, [status]);
+      const transcriptRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [transcript.length]);
+
   useEffect(() => {
     if (authLoading || !sessionData) return;
 
@@ -324,41 +331,52 @@ export default function SessionsPage() {
         ) : null}
       </section>
 
-      <section className="flex flex-col rounded-2xl border border-white/5 bg-slate-950/60 p-6">
+      <section className="flex flex-col rounded-2xl border border-white/10 bg-black p-6">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-sm uppercase tracking-wide text-white/60">Live transcript</p>
-            <p className="text-2xl font-semibold text-white">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">
+              Live transcript
+            </p>
+            <p className="mt-1 flex items-center gap-2 text-2xl font-semibold text-white">
               Session {sessionId?.slice(0, 8) ?? "—"}
+              {status === "RECORDING" && (
+                <span className="size-2 animate-pulse rounded-full bg-brand" />
+              )}
             </p>
           </div>
-          <span className="text-sm text-white/60">
+          <span className="text-sm tabular-nums text-white/40">
             {transcript?.length || 0} chunks
           </span>
         </header>
 
-        <div className="mt-6 flex-1 space-y-4 overflow-y-auto rounded-xl bg-black/30 p-4">
+        <div
+          ref={transcriptRef}
+          className="mt-6 max-h-80 flex-1 overflow-y-auto"
+        >
           {transcript.length === 0 ? (
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-white/30">
               Transcript will appear here once Whisper transcriptions stream in.
             </p>
           ) : (
             transcript.map((chunk) => (
               <article
                 key={chunk.sequence}
-                className="rounded-lg border border-white/5 bg-white/5 p-3"
+                className="border-b border-white/5 py-3 last:border-0"
               >
-                <header className="mb-2 flex items-center justify-between text-xs text-white/60">
-                  <span className="font-semibold text-white">{chunk.speakerTag}</span>
-                  <span>#{chunk.sequence}</span>
+                <header className="mb-1 flex items-center justify-between text-xs">
+                  <span className="font-semibold uppercase tracking-wider text-brand">
+                    {chunk.speakerTag}
+                  </span>
+                  <span className="text-white/30">#{chunk.sequence}</span>
                 </header>
-                <p className="text-sm leading-relaxed text-white/90">{chunk.text}</p>
+                <p className="text-sm leading-relaxed text-white/90">
+                  {chunk.text}
+                </p>
               </article>
             ))
           )}
         </div>
       </section>
-
       <section className="mx-auto mt-8 max-w-6xl rounded-2xl border border-white/5 bg-black/40 p-6 md:col-span-2">
         <header className="mb-4 space-y-4">
           <div className="flex items-center justify-between">
