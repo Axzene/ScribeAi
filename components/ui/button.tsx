@@ -6,12 +6,12 @@ import Link from "next/link";
 import React, { ButtonHTMLAttributes, forwardRef } from "react";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ring-offset-slate-950",
+  "inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ring-offset-black",
   {
     variants: {
       variant: {
-        default: "bg-brand text-brand-foreground hover:bg-brand/80",
-        ghost: "bg-white/5 text-white hover:bg-white/15",
+        default:"bg-gradient-to-r from-white to-brand text-brand-foreground hover:brightness-90",
+        ghost:"border border-white/10 bg-white/5 text-white hover:bg-white/15",
         danger: "bg-red-600 text-white hover:bg-red-500"
       },
       size: {
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         </Link>
       );
     }
-
+    
     return (
       <button
         ref={ref}

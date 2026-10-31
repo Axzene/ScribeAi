@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { useRecorderMachine } from "@/hooks/useRecorderMachine";
 import { RecordingSource } from "@/types/session";
-
+import { SoundBars } from "@/components/ui/SoundBars";
 const SOURCE_LABELS: Record<RecordingSource, string> = {
   MIC: "Microphone",
   TAB: "Browser tab"
@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: "bg-emerald-500/20 text-emerald-200",
   FAILED: "bg-red-500/20 text-red-200"
 };
-
+const HERO_TEXT = "text-3xl font-light uppercase tracking-[0.35em] text-white md:text-5xl [text-shadow:0_0_24px_rgba(255,255,255,0.35)]";
 type SessionHistory = {
   id: string;
   status: string;
@@ -77,6 +77,7 @@ export default function SessionsPage() {
     status,
     source,
     sessionId,
+    stream,
     transcript = [],
     summary,
     error,
@@ -94,7 +95,7 @@ export default function SessionsPage() {
   const isPaused = status === 'PAUSED';
   // eslint-disable-next-line no-unused-vars
   const isProcessing = status === 'PROCESSING';
-
+  const heroActive = status !== "IDLE";
   useEffect(() => {
     if (authLoading || !sessionData) return;
 
@@ -185,7 +186,7 @@ export default function SessionsPage() {
       case "IDLE":
       default:
         return (
-          <Button onClick={handleStart}>Start Recording</Button>
+          <Button onClick={handleStart} size = "lg">Start Recording</Button>
         );
     }
   }, [
@@ -222,48 +223,73 @@ export default function SessionsPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 md:grid-cols-[400px,1fr]">
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20">
-        <header className="mb-6 space-y-2">
-          <p className="text-sm uppercase tracking-wide text-white/60">Status</p>
+    <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-10">
+      <section className="flex flex-col items-center gap-8 py-8 text-center">
+        <div className="relative flex min-h-[16rem] w-full items-center justify-center overflow-x-clip">
+          <div
+            className={`absolute inset-0 flex items-center justify-center transition-transform duration-500 ease-out ${
+              heroActive ? "scale-[1.1]" : "scale-[0.55]"
+            }`}
+          >
+            <div className={status === "RECORDING" ? "orb-listening" : ""}>
+              <div className="orb orb-liquid" />
+            </div>
+          </div>
+            <SoundBars stream={stream} active={status === "RECORDING"} />
+          <h1
+            className={`relative z-10 grid grid-cols-1 gap-y-2 transition-all duration-500 ease-in md:grid-cols-2 md:gap-x-24 ${
+              heroActive ? "scale-[4] opacity-0 blur-md" : ""
+            }`}
+          >
+            <span className={`${HERO_TEXT} md:-mr-[0.35em] md:text-right`}>
+              Meeting
+            </span>
+            <span className={`${HERO_TEXT} md:text-left`}>Companion</span>
+          </h1>
+        </div>
+
+        {status === "IDLE" ? (
+          <p className="text-lg text-white/70">Listen. Transcribe. Summarize.</p>
+        ) : (
           <div
             className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold ${STATUS_COLORS[status]}`}
           >
             <span className="size-2 rounded-full bg-current" />
             {status}
           </div>
-        </header>
-
-        <div className="mb-8 space-y-3">
-          <p className="text-sm text-white/70">Input source</p>
-          <div className="flex gap-2">
-            {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-              <button
-                key={value}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
-                  source === value
-                    ? "border-brand bg-brand/20 text-white"
-                    : "border-white/10 text-white/70 hover:border-white/30"
-                }`}
-                disabled={status !== "IDLE"}
-                onClick={() => setSource(value as RecordingSource)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {controls}
         </div>
 
-        <div className="flex flex-wrap gap-3">{controls}</div>
+                <div
+          className={`flex rounded-full border border-white/10 bg-white/5 p-1 transition-opacity duration-500 ${
+            heroActive ? "pointer-events-none opacity-0" : ""
+          }`}
+        >
+          {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+            <button
+              key={value}
+              className={`rounded-full px-6 py-2 text-sm transition-colors ${
+                source === value
+                  ? "bg-white text-black"
+                  : "text-white/70 hover:text-white"
+              }`}
+              onClick={() => setSource(value as RecordingSource)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {error ? (
-          <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+          <p className="w-full max-w-xl rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
             {error}
           </p>
         ) : null}
 
         {summary ? (
-          <div className="mt-6 space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+          <div className="w-full max-w-xl space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left text-sm text-emerald-100">
             <p className="text-xs uppercase tracking-wide text-emerald-200">
               AI Summary
             </p>

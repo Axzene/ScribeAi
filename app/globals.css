@@ -3,26 +3,71 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-  }
+  --background: #000000;
+  --foreground: #f4f4f5;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(45rem 24rem at 10% -5%, rgba(198, 241, 53, 0.2), transparent),
+    radial-gradient(40rem 22rem at 95% 5%, rgba(198, 241, 53, 0.1), transparent),
+    radial-gradient(50rem 26rem at 85% 105%, rgba(198, 241, 53, 0.14), transparent),
+    var(--background);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
+  overflow-x: clip;
 }
 
 .text-gradient {
-  background: linear-gradient(120deg, #f97316, #c026d3);
+  background: linear-gradient(120deg, #ffffff, #c6f135);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Respect users who turn off animations in their OS settings */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.orb {
+  width: 12rem;
+  height: 12rem;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 35%),
+    radial-gradient(circle at 70% 75%, rgba(198, 241, 53, 0.35), transparent 45%),
+    radial-gradient(circle at 50% 50%, #3a3a3a, #050505 70%);
+  border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%;
+  box-shadow:
+    inset 0 0 30px rgba(255, 255, 255, 0.25),
+    0 0 60px rgba(198, 241, 53, 0.18);
+  animation: orb-morph 8s ease-in-out infinite;
+}
+
+@keyframes orb-morph {
+  0%,
+  100% {
+    border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%;
+    transform: rotate(0deg);
+  }
+  50% {
+    border-radius: 42% 58% 40% 60% / 58% 42% 58% 42%;
+    transform: rotate(12deg);
+  }
+}
+@keyframes orb-pulse {
+  0%, 100% {
+    filter: brightness(0.7) drop-shadow(0 0 20px rgba(198, 241, 53, 0.15));
+  }
+  50% {
+    filter: brightness(1.3) drop-shadow(0 0 70px rgba(198, 241, 53, 0.6));
+  }
+}
+
+.orb-listening {
+  animation: orb-pulse 3s ease-in-out infinite;
+}
+
