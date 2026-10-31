@@ -14,11 +14,16 @@ const SOURCE_LABELS: Record<RecordingSource, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   IDLE: "bg-white/10 text-white",
-  RECORDING: "bg-green-500/20 text-green-300",
+  RECORDING: "bg-green-500/20 text-green-300",  
   PAUSED: "bg-yellow-500/20 text-yellow-200",
   PROCESSING: "bg-blue-500/20 text-blue-200",
   COMPLETED: "bg-emerald-500/20 text-emerald-200",
   FAILED: "bg-red-500/20 text-red-200"
+};
+const formatTime = (totalSeconds: number) => {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 const HERO_TEXT = "text-3xl font-light uppercase tracking-[0.35em] text-white md:text-5xl [text-shadow:0_0_24px_rgba(255,255,255,0.35)]";
 type SessionHistory = {
@@ -96,6 +101,21 @@ export default function SessionsPage() {
   // eslint-disable-next-line no-unused-vars
   const isProcessing = status === 'PROCESSING';
   const heroActive = status !== "IDLE";
+    const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    setElapsed(0);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (status === "IDLE") {
+      setElapsed(0);
+      return;
+    }
+    if (status !== "RECORDING") return;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [status]);
   useEffect(() => {
     if (authLoading || !sessionData) return;
 
@@ -151,24 +171,24 @@ export default function SessionsPage() {
 
     switch (status) {
       case "RECORDING":
-        return (
-          <>
-            <Button onClick={pauseRecording} variant="ghost">
-              Pause
-            </Button>
-            <Button onClick={stopRecording} variant="danger">
-              Stop
-            </Button>
-          </>
-        );
       case "PAUSED":
         return (
-          <>
-            <Button onClick={resumeRecording}>Resume</Button>
+          <div className="flex items-center gap-4 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+            <Button
+              onClick={status === "PAUSED" ? resumeRecording : pauseRecording}
+              variant="ghost"
+            >
+              {status === "PAUSED" ? "Resume" : "Pause"}
+            </Button>
+            <span className="h-6 w-px bg-white/10" />
+            <span className="font-mono text-lg tabular-nums text-white">
+              {formatTime(elapsed)}
+            </span>
+            <span className="h-6 w-px bg-white/10" />
             <Button onClick={stopRecording} variant="danger">
               Stop
             </Button>
-          </>
+          </div>
         );
       case "PROCESSING":
         return (
@@ -190,6 +210,7 @@ export default function SessionsPage() {
         );
     }
   }, [
+    elapsed,
     pauseRecording,
     resumeRecording,
     source,
@@ -249,14 +270,18 @@ export default function SessionsPage() {
         </div>
 
         {status === "IDLE" ? (
-          <p className="text-lg text-white/70">Listen. Transcribe. Summarize.</p>
-        ) : (
-          <div
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold ${STATUS_COLORS[status]}`}
-          >
-            <span className="size-2 rounded-full bg-current" />
-            {status}
-          </div>
+            <p className="text-lg text-white/70">Listen. Transcribe. Summarize.</p>
+          ) : status === "RECORDING" || status === "PAUSED" ? (
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-brand">
+              {status === "RECORDING" ? "Listening" : "Paused"}
+            </p>
+          ) : (
+            <div
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold ${STATUS_COLORS[status]}`}
+            >
+              <span className="size-2 rounded-full bg-current" />
+              {status}
+            </div>
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
           {controls}
