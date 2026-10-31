@@ -7,10 +7,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useRecorderMachine } from "@/hooks/useRecorderMachine";
 import { RecordingSource } from "@/types/session";
 import { SoundBars } from "@/components/ui/SoundBars";
-const SOURCE_LABELS: Record<RecordingSource, string> = {
-  MIC: "Microphone",
-  TAB: "Browser tab"
-};
+
 
 const STATUS_COLORS: Record<string, string> = {
   IDLE: "bg-white/10 text-white",
@@ -90,7 +87,7 @@ export default function SessionsPage() {
     pauseRecording,
     resumeRecording,
     stopRecording,
-    setSource
+
   } = recorder;
   
   // Derive state booleans from status
@@ -292,26 +289,6 @@ export default function SessionsPage() {
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
           {controls}
-        </div>
-
-                <div
-          className={`flex rounded-full border border-white/10 bg-white/5 p-1 transition-opacity duration-500 ${
-            heroActive ? "pointer-events-none opacity-0" : ""
-          }`}
-        >
-          {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-            <button
-              key={value}
-              className={`rounded-full px-6 py-2 text-sm transition-colors ${
-                source === value
-                  ? "bg-white text-black"
-                  : "text-white/70 hover:text-white"
-              }`}
-              onClick={() => setSource(value as RecordingSource)}
-            >
-              {label}
-            </button>
-          ))}
         </div>
 
         {error ? (
