@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { useRecorderMachine } from "@/hooks/useRecorderMachine";
 import { RecordingSource } from "@/types/session";
-
+import { SoundBars } from "@/components/ui/SoundBars";
 const SOURCE_LABELS: Record<RecordingSource, string> = {
   MIC: "Microphone",
   TAB: "Browser tab"
@@ -14,13 +14,18 @@ const SOURCE_LABELS: Record<RecordingSource, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   IDLE: "bg-white/10 text-white",
-  RECORDING: "bg-green-500/20 text-green-300",
+  RECORDING: "bg-green-500/20 text-green-300",  
   PAUSED: "bg-yellow-500/20 text-yellow-200",
   PROCESSING: "bg-blue-500/20 text-blue-200",
   COMPLETED: "bg-emerald-500/20 text-emerald-200",
   FAILED: "bg-red-500/20 text-red-200"
 };
-
+const formatTime = (totalSeconds: number) => {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
+const HERO_TEXT = "text-3xl font-light uppercase tracking-[0.35em] text-white md:text-5xl [text-shadow:0_0_24px_rgba(255,255,255,0.35)]";
 type SessionHistory = {
   id: string;
   status: string;
@@ -77,6 +82,7 @@ export default function SessionsPage() {
     status,
     source,
     sessionId,
+    stream,
     transcript = [],
     summary,
     error,
@@ -94,6 +100,28 @@ export default function SessionsPage() {
   const isPaused = status === 'PAUSED';
   // eslint-disable-next-line no-unused-vars
   const isProcessing = status === 'PROCESSING';
+  const heroActive = status !== "IDLE";
+    const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    setElapsed(0);
+  }, [sessionId]);
+
+  useEffect(() => {
+        if (status === "IDLE") {
+          setElapsed(0);
+          return;
+        }
+        if (status !== "RECORDING") return;
+        const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+        return () => clearInterval(id);
+      }, [status]);
+      const transcriptRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [transcript.length]);
 
   useEffect(() => {
     if (authLoading || !sessionData) return;
@@ -150,24 +178,24 @@ export default function SessionsPage() {
 
     switch (status) {
       case "RECORDING":
-        return (
-          <>
-            <Button onClick={pauseRecording} variant="ghost">
-              Pause
-            </Button>
-            <Button onClick={stopRecording} variant="danger">
-              Stop
-            </Button>
-          </>
-        );
       case "PAUSED":
         return (
-          <>
-            <Button onClick={resumeRecording}>Resume</Button>
+          <div className="flex items-center gap-4 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+            <Button
+              onClick={status === "PAUSED" ? resumeRecording : pauseRecording}
+              variant="ghost"
+            >
+              {status === "PAUSED" ? "Resume" : "Pause"}
+            </Button>
+            <span className="h-6 w-px bg-white/10" />
+            <span className="font-mono text-lg tabular-nums text-white">
+              {formatTime(elapsed)}
+            </span>
+            <span className="h-6 w-px bg-white/10" />
             <Button onClick={stopRecording} variant="danger">
               Stop
             </Button>
-          </>
+          </div>
         );
       case "PROCESSING":
         return (
@@ -185,10 +213,11 @@ export default function SessionsPage() {
       case "IDLE":
       default:
         return (
-          <Button onClick={handleStart}>Start Recording</Button>
+          <Button onClick={handleStart} size = "lg">Start Recording</Button>
         );
     }
   }, [
+    elapsed,
     pauseRecording,
     resumeRecording,
     source,
@@ -222,48 +251,77 @@ export default function SessionsPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 md:grid-cols-[400px,1fr]">
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20">
-        <header className="mb-6 space-y-2">
-          <p className="text-sm uppercase tracking-wide text-white/60">Status</p>
+    <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-10">
+      <section className="flex flex-col items-center gap-8 py-8 text-center">
+        <div className="relative flex min-h-[16rem] w-full items-center justify-center overflow-x-clip">
           <div
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold ${STATUS_COLORS[status]}`}
+            className={`absolute inset-0 flex items-center justify-center transition-transform duration-500 ease-out ${
+              heroActive ? "scale-[1.1]" : "scale-[0.55]"
+            }`}
           >
-            <span className="size-2 rounded-full bg-current" />
-            {status}
+            <div className={status === "RECORDING" ? "orb-listening" : ""}>
+              <div className="orb orb-liquid" />
+            </div>
           </div>
-        </header>
-
-        <div className="mb-8 space-y-3">
-          <p className="text-sm text-white/70">Input source</p>
-          <div className="flex gap-2">
-            {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-              <button
-                key={value}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
-                  source === value
-                    ? "border-brand bg-brand/20 text-white"
-                    : "border-white/10 text-white/70 hover:border-white/30"
-                }`}
-                disabled={status !== "IDLE"}
-                onClick={() => setSource(value as RecordingSource)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            <SoundBars stream={stream} active={status === "RECORDING"} />
+          <h1
+            className={`relative z-10 grid grid-cols-1 gap-y-2 transition-all duration-500 ease-in md:grid-cols-2 md:gap-x-24 ${
+              heroActive ? "scale-[4] opacity-0 blur-md" : ""
+            }`}
+          >
+            <span className={`${HERO_TEXT} md:-mr-[0.35em] md:text-right`}>
+              Meeting
+            </span>
+            <span className={`${HERO_TEXT} md:text-left`}>Companion</span>
+          </h1>
         </div>
 
-        <div className="flex flex-wrap gap-3">{controls}</div>
+        {status === "IDLE" ? (
+            <p className="text-lg text-white/70">Listen. Transcribe. Summarize.</p>
+          ) : status === "RECORDING" || status === "PAUSED" ? (
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-brand">
+              {status === "RECORDING" ? "Listening" : "Paused"}
+            </p>
+          ) : (
+            <div
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold ${STATUS_COLORS[status]}`}
+            >
+              <span className="size-2 rounded-full bg-current" />
+              {status}
+            </div>
+        )}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {controls}
+        </div>
+
+                <div
+          className={`flex rounded-full border border-white/10 bg-white/5 p-1 transition-opacity duration-500 ${
+            heroActive ? "pointer-events-none opacity-0" : ""
+          }`}
+        >
+          {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+            <button
+              key={value}
+              className={`rounded-full px-6 py-2 text-sm transition-colors ${
+                source === value
+                  ? "bg-white text-black"
+                  : "text-white/70 hover:text-white"
+              }`}
+              onClick={() => setSource(value as RecordingSource)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {error ? (
-          <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+          <p className="w-full max-w-xl rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
             {error}
           </p>
         ) : null}
 
         {summary ? (
-          <div className="mt-6 space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+          <div className="w-full max-w-xl space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left text-sm text-emerald-100">
             <p className="text-xs uppercase tracking-wide text-emerald-200">
               AI Summary
             </p>
@@ -273,41 +331,52 @@ export default function SessionsPage() {
         ) : null}
       </section>
 
-      <section className="flex flex-col rounded-2xl border border-white/5 bg-slate-950/60 p-6">
+      <section className="flex flex-col rounded-2xl border border-white/10 bg-black p-6">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-sm uppercase tracking-wide text-white/60">Live transcript</p>
-            <p className="text-2xl font-semibold text-white">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">
+              Live transcript
+            </p>
+            <p className="mt-1 flex items-center gap-2 text-2xl font-semibold text-white">
               Session {sessionId?.slice(0, 8) ?? "—"}
+              {status === "RECORDING" && (
+                <span className="size-2 animate-pulse rounded-full bg-brand" />
+              )}
             </p>
           </div>
-          <span className="text-sm text-white/60">
+          <span className="text-sm tabular-nums text-white/40">
             {transcript?.length || 0} chunks
           </span>
         </header>
 
-        <div className="mt-6 flex-1 space-y-4 overflow-y-auto rounded-xl bg-black/30 p-4">
+        <div
+          ref={transcriptRef}
+          className="mt-6 max-h-80 flex-1 overflow-y-auto"
+        >
           {transcript.length === 0 ? (
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-white/30">
               Transcript will appear here once Whisper transcriptions stream in.
             </p>
           ) : (
             transcript.map((chunk) => (
               <article
                 key={chunk.sequence}
-                className="rounded-lg border border-white/5 bg-white/5 p-3"
+                className="border-b border-white/5 py-3 last:border-0"
               >
-                <header className="mb-2 flex items-center justify-between text-xs text-white/60">
-                  <span className="font-semibold text-white">{chunk.speakerTag}</span>
-                  <span>#{chunk.sequence}</span>
+                <header className="mb-1 flex items-center justify-between text-xs">
+                  <span className="font-semibold uppercase tracking-wider text-brand">
+                    {chunk.speakerTag}
+                  </span>
+                  <span className="text-white/30">#{chunk.sequence}</span>
                 </header>
-                <p className="text-sm leading-relaxed text-white/90">{chunk.text}</p>
+                <p className="text-sm leading-relaxed text-white/90">
+                  {chunk.text}
+                </p>
               </article>
             ))
           )}
         </div>
       </section>
-
       <section className="mx-auto mt-8 max-w-6xl rounded-2xl border border-white/5 bg-black/40 p-6 md:col-span-2">
         <header className="mb-4 space-y-4">
           <div className="flex items-center justify-between">

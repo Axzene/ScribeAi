@@ -197,7 +197,7 @@ export function useRecorderMachine({ user }: UseRecorderOptions) {
   const recorderOptionsRef = useRef<MediaRecorderOptions>({});
   const [isSupported, setIsSupported] = useState<boolean>(true);
   const [browserError, setBrowserError] = useState<string | null>(null);
-
+const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   // Browser compatibility check
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -276,6 +276,7 @@ export function useRecorderMachine({ user }: UseRecorderOptions) {
         track.stop();
       });
       streamRef.current = null;
+      setActiveStream(null);
     }
   }, []);
 
@@ -478,7 +479,7 @@ export function useRecorderMachine({ user }: UseRecorderOptions) {
     }
 
     streamRef.current = stream;
-
+    setActiveStream(stream);
     // Determine best MIME type
     const preferredMimeTypes = [
       'audio/webm;codecs=opus',
@@ -742,6 +743,7 @@ export function useRecorderMachine({ user }: UseRecorderOptions) {
     error: state.context.error,
     source: state.context.source,
     sessionId: state.context.sessionId,
+    stream: activeStream,
     startRecording,
     pauseRecording,
     resumeRecording,
